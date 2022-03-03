@@ -1,18 +1,38 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/arran4/golang-ical"
 )
 
-const url = ""
+type config struct {
+	Ical  string `json:"ical"`
+	Title string `json:"title"`
+}
 
 func main() {
 
-	resp, err := http.Get(url)
+	b, err := os.ReadFile("config.json")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var config config
+	err = json.Unmarshal(b, &config)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	if config.Ical == "" {
+		log.Fatalln("ICAL URL not found in config")
+	}
+
+	resp, err := http.Get(config.Ical)
 	if err != nil {
 		log.Fatalln(err)
 	}
