@@ -28,6 +28,13 @@ type config struct {
 	Port  int    `json:"port"`
 }
 
+type event struct {
+	ID     string `json:"id"`
+	Name   string `json:"title"`
+	Date   string `json:"start"`
+	AllDay bool   `json:"allDay"`
+}
+
 func main() {
 
 	// Get config
@@ -61,37 +68,40 @@ func main() {
 
 	// Format data
 	var events []event
-	for _, v := range cal.Components {
+	for k, v := range cal.Components {
 
 		var date time.Time
 		var summary string
 
-		for _, v := range v.UnknownPropertiesIANAProperties() {
+		for _, vv := range v.UnknownPropertiesIANAProperties() {
 
-			if v.IANAToken == propertySummary {
-				summary = v.Value
-				break
+			if vv.IANAToken == propertySummary {
+				summary = vv.Value
 			}
 
-			if v.IANAToken == propertyStart {
-				date, err = time.Parse("20060102T150405Z", v.Value)
-				break
+			if vv.IANAToken == propertyStart {
+				date, err = time.Parse("20060102T150405Z", vv.Value)
 			}
-
-			fmt.Println(v.IANAToken, v.Value)
 		}
 
-		events = append(events, event{Name: summary, Date: date.String()})
+		events = append(events, event{
+			ID:     fmt.Sprint(k),
+			Name:   summary,
+			Date:   date.Format("2006-01-02"),
+			AllDay: true,
+		})
 	}
 
-	fmt.Println(events)
-
 	// Template
-	app := fiber.New(fiber.Config{Views: html.New("./", ".gohtml")})
+	app := fiber.New(fiber.Config{
+		Views:                 html.New("./", ".gohtml"),
+		DisableStartupMessage: true,
+	})
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Render("index", fiber.Map{
-			"Title": "Hello, World!",
+			"Title":  config.Title,
+			"Events": events,
 		})
 	})
 
@@ -99,9 +109,4 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
-}
-
-type event struct {
-	Name string
-	Date string
 }
